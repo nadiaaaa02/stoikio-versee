@@ -17,7 +17,7 @@ const PARTICLES = [
   { s: "Fe",   l: 92, t: 55, sz: 1.1, dur: 3.0, del: 0.6, op: 1.0, anim: "floatA" },
   { s: "Cl₂",  l: 10, t: 50, sz: 0.9, dur: 2.7, del: 1.3, op: 1.0, anim: "floatB" },
   { s: "→",    l: 35, t: 45, sz: 1.3, dur: 3.3, del: 0.9, op: 1.0, anim: "floatC" },
-  { s: "Mg",   l: 58, t: 8,  sz: 1.0, dur: 2.9, del: 1.6, op: 0.8 anim: "floatA" },
+  { s: "Mg",   l: 58, t: 8,  sz: 1.0, dur: 2.9, del: 1.6, op: 0.8, anim: "floatA" },
   { s: "•",    l: 88, t: 90, sz: 0.8, dur: 1.8, del: 0.1, op: 1.0, anim: "floatB" },
   { s: "K",    l: 25, t: 95, sz: 1.2, dur: 3.6, del: 1.1, op: 0.8, anim: "floatC" },
   { s: "⬡",   l: 72, t: 5,  sz: 1.5, dur: 7.0, del: 2.0, op: 1.0, anim: "spinSlow"},

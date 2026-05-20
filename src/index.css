@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  background: linear-gradient(135deg, #FFF8E7 0%, #FFF1EC 50%, #FDE8E4 100%);
+  min-height: 100vh;
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

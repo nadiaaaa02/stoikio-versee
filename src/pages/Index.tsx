@@ -75,7 +75,7 @@ export default function Index() {
     <>
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
 
-      <div key={loggedIn ? "in" : "out"} className="min-h-screen text-gray-800 animate-slide-up-fade bg-gradient-to-br from-[#FFF8E7] via-[#FFF1EC] to-[#FDE8E4]">
+      <div key={loggedIn ? "in" : "out"} className="min-h-screen text-gray-800 animate-slide-up-fade">
 
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200">

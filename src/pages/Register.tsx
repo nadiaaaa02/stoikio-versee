@@ -21,7 +21,7 @@ export default function Register() {
     if (password.length < 6) { setError("Kata sandi minimal 6 karakter."); return; }
     setError("");
     setLoading(true);
-    const { error: authErr } = await supabase.auth.signUp({
+    const { data: signUpData, error: authErr } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -31,8 +31,11 @@ export default function Register() {
     });
     setLoading(false);
     if (authErr) { setError(authErr.message); return; }
+    const savedName =
+      (signUpData?.user?.user_metadata as { full_name?: string })?.full_name ||
+      name.trim();
     try {
-      localStorage.setItem("sb_user", JSON.stringify({ name: name.trim(), email }));
+      localStorage.setItem("sb_user", JSON.stringify({ name: savedName, email }));
     } catch { /* ignore */ }
     navigate("/");
   };

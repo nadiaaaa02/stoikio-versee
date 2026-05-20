@@ -6,7 +6,6 @@ import VideoCard from "@/components/VideoCard";
 import Reveal from "@/components/Reveal";
 import EbookViewer from "@/components/EbookViewer";
 import BrandLogo from "@/components/BrandLogo";
-import ChemBackground from "@/components/ChemistryBackground";
 import petaKonsep from "@/assets/peta-konsep-stoikiometri.png";
 
 const EBOOK_URL = "/ebook/Panduan_Stoikiometri_Interaktif.pdf";
@@ -75,9 +74,8 @@ export default function Index() {
   return (
     <>
       {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
-      <ChemBackground />
 
-      <div key={loggedIn ? "in" : "out"} className="min-h-screen text-gray-800 animate-slide-up-fade bg-gradient-to-br from-[#FFF8E7] via-[#FFF1EC] to-[#FDE8E4]">
+      <div key={loggedIn ? "in" : "out"} className="min-h-screen text-gray-800 animate-slide-up-fade">
 
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200">

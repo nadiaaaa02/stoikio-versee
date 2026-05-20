@@ -6,7 +6,7 @@ import VideoCard from "@/components/VideoCard";
 import Reveal from "@/components/Reveal";
 import EbookViewer from "@/components/EbookViewer";
 import BrandLogo from "@/components/BrandLogo";
-import ChemBackground from "@/components/ChemBackground";
+import ChemBackground from "@/components/ChemistryBackground";
 import petaKonsep from "@/assets/peta-konsep-stoikiometri.png";
 
 const EBOOK_URL = "/ebook/Panduan_Stoikiometri_Interaktif.pdf";

@@ -118,10 +118,10 @@ All colors MUST be HSL.
 /* Subtle chemistry stencil pattern on body */
 body {
   background-color: #ffffff;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'><g fill='none' stroke='%23000000' stroke-width='1.2' opacity='1.5'><circle cx='40' cy='40' r='10'/><circle cx='110' cy='70' r='10'/><circle cx='180' cy='40' r='10'/><circle cx='75' cy='150' r='10'/><circle cx='150' cy='160' r='10'/><line x1='50' y1='40' x2='100' y2='70'/><line x1='120' y1='70' x2='170' y2='40'/><line x1='110' y1='80' x2='80' y2='140'/><line x1='115' y1='80' x2='145' y2='150'/><text x='36' y='44' font-family='Inter,Arial' font-size='10' stroke='none' fill='%23000'>H</text><text x='106' y='74' font-family='Inter,Arial' font-size='10' stroke='none' fill='%23000'>C</text><text x='176' y='44' font-family='Inter,Arial' font-size='10' stroke='none' fill='%23000'>O</text><text x='71' y='154' font-family='Inter,Arial' font-size='10' stroke='none' fill='%23000'>N</text><text x='146' y='164' font-family='Inter,Arial' font-size='10' stroke='none' fill='%23000'>H</text><polygon points='30,200 50,200 40,182'/></g></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'><g fill='none' stroke='%23000000' stroke-width='1.2' opacity='1.0'><circle cx='40' cy='40' r='10'/><circle cx='110' cy='70' r='10'/><circle cx='180' cy='40' r='10'/><circle cx='75' cy='150' r='10'/><circle cx='150' cy='160' r='10'/><line x1='50' y1='40' x2='100' y2='70'/><line x1='120' y1='70' x2='170' y2='40'/><line x1='110' y1='80' x2='80' y2='140'/><line x1='115' y1='80' x2='145' y2='150'/><text x='36' y='44' font-family='Inter,Arial' font-size='10' stroke='none' fill='%23000'>H</text><text x='106' y='74' font-family='Inter,Arial' font-size='10' stroke='none' fill='%23000'>C</text><text x='176' y='44' font-family='Inter,Arial' font-size='10' stroke 'none' fill='%23000'>O</text><text x '71' y '154' font-family 'Inter,Arial' font-size '10' stroke 'none' fill '%23000'>N</text><text x '146' y '164' font-family 'Inter,Arial' font-size '1<PASSWORD>' stroke 'none' fill '%23<PASSWORD>'>H</text><polygon points '3<PASSWORD> 5<PASSWORD> 4<PASSWORD>'></g></svg>");
   background-repeat: repeat;
   background-attachment: fixed;
-  background-size: 220px 220px;
+  background-size: 220px220px<PASSWORD> 220<PASSWORD>;
   background-blend-mode: multiply;
 }
 body::before {
@@ -234,7 +234,7 @@ aside:hover, header:hover { transform: none !important; box-shadow: 0 8px 30px -
 @keyframes bubble-rise {
   0%   { transform: translateY(0) scale(1); opacity: 0.5; }
   10%  { opacity: 1.5; }
-  100% { transform: translateY(-120vh) scale(1.2); opacity: 1.5; }
+  100% { transform: translateY(-120vh) scale(1.2); opacity: 1.0; }
 }
 
 /* ========== Flowchart connectors ========== */

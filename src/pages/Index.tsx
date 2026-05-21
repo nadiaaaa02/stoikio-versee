@@ -9,6 +9,11 @@ import BrandLogo from "@/components/BrandLogo";
 import petaKonsep from "@/assets/peta-konsep-stoikiometri.png";
 import { supabase } from "@/integrations/supabase/client";
 
+function getUid(uid: string): string {
+  if (uid) return uid;
+  try { return JSON.parse(localStorage.getItem("sb_user") || "{}").id || ""; } catch { return ""; }
+}
+
 const EBOOK_URL = "/ebook/Panduan_Stoikiometri_Interaktif.pdf";
 
 /** Simpan progress modul siswa ke Supabase */
@@ -101,6 +106,14 @@ export default function Index() {
           if (u?.name) {
             setUserName(u.name);
             setLoggedIn(true);
+            // First try fresh session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.id) {
+              setUserId(session.user.id);
+            } else if (u?.id) {
+              // Fallback to stored id
+              setUserId(u.id);  // ← ADD THIS LINE
+            }
           }
         }
       } catch { /* ignore */ }
@@ -114,11 +127,14 @@ export default function Index() {
     }
     setPage(p);
     if (userId) {
+      console.log("💾 Saving progress for userId:", userId);
       const pageOrder: PageId[] = ["home", "belajar", "lab", "game", "evaluasi", "refleksi"];
       const idx = pageOrder.indexOf(p);
       if (idx > 0) {
         saveProgress(userId, idx);
       }
+    } else {
+      console.log("❌ userId is empty, not saving");
     }
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1163,6 +1179,14 @@ function Mission1Balancer({ onBack, onNext }: { onBack: () => void; onNext: () =
   });
 
   const lastDoneCorrect = isLast && status === "ok";
+  useEffect(() => {
+  if (lastDoneCorrect && userId) {
+    const uid = userId || (() => {
+      try { return JSON.parse(localStorage.getItem("sb_user") || "{}").id; } catch { return ""; }
+    })();
+    if (uid) saveMissionScore(uid, "misi1", 100);
+  }
+}, [lastDoneCorrect]);
 
   return (
     <section>
@@ -1459,7 +1483,7 @@ const BANK: Q[] = [
 function EvaluasiPage({ onNext, userId }: { onNext: () => void; userId: string }) {
   const [answers, setAnswers] = useState<(number | null)[]>(() => Array(BANK.length).fill(null));
   const [done, setDone] = useState(false);
-  const score = useMemo(() => answers.reduce<number>((s, a, i) => s + (a === BANK[i].ans ? 1 : 0), 0), [answers]);
+  const finalScore = useMemo(() => answers.reduce<number>((s, a, i) => s + (a === BANK[i].ans ? 1 : 0), 0), [answers]);
 
   const restart = () => { setAnswers(Array(BANK.length).fill(null)); setDone(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
@@ -1492,12 +1516,19 @@ function EvaluasiPage({ onNext, userId }: { onNext: () => void; userId: string }
           {/* ✅ FIX BUG 1 (lanjutan): Logika simpan Supabase ditambahkan di sini */}
           <button
             onClick={() => {
+              const finalScore = answers.reduce<number>((s, a, i) => s + (a === BANK[i].ans ? 1 : 0), 0);
               setDone(true);
               window.scrollTo({ top: 0, behavior: "smooth" });
+
+               // Get userId from localStorage as fallback
+              const uid = userId || (() => {
+                try { return JSON.parse(localStorage.getItem("sb_user") || "{}").id; } catch { return ""; }
+              })();
+              
               if (userId) {
                 supabase.from("evaluation_scores").insert({
                   user_id: userId,
-                  score: score,
+                  score: finalScore,
                   total: BANK.length,
                   submitted_at: new Date().toISOString(),
                 });
@@ -1513,9 +1544,9 @@ function EvaluasiPage({ onNext, userId }: { onNext: () => void; userId: string }
         <div className="mt-8 space-y-6">
           <div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center soft-shadow">
             <div className="text-sm text-gray-500 font-semibold uppercase tracking-wide">Skor Akhir</div>
-            <div className="mt-3 text-6xl font-extrabold text-amber-500">{score}<span className="text-3xl text-gray-400">/{BANK.length}</span></div>
+            <div className="mt-3 text-6xl font-extrabold text-amber-500">{finalScore}<span className="text-3xl text-gray-400">/{BANK.length}</span></div>
             <div className="mt-2 text-gray-700 font-medium">
-              {score === BANK.length ? "Sempurna! 🎉" : score >= BANK.length * 0.6 ? "Bagus, terus berlatih!" : "Jangan menyerah, ulangi materinya."}
+              {finalScore === BANK.length ? "Sempurna! 🎉" : finalScore >= BANK.length * 0.6 ? "Bagus, terus berlatih!" : "Jangan menyerah, ulangi materinya."}
             </div>
             <div className="mt-6 flex flex-wrap gap-3 justify-center">
               <button onClick={restart} className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold px-5 py-2.5 rounded-lg">Ulangi Evaluasi</button>
@@ -1667,7 +1698,7 @@ function VirtualLabPage({ onNext, userId }: { onNext: () => void; userId: string
     setCheck({ ok, allOk: ok.every(Boolean) });
 
     if (ok.every(Boolean) && userId) {
-      saveLabStatus(userId, "Tercapai");
+      saveLabStatus(getUid(userId), "Tercapai");
     }
   };
 

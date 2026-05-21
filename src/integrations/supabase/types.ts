@@ -17,47 +17,47 @@ export type Database = {
       evaluation_scores: {
         Row: {
           id: string
-          score: number
-          submitted_at: string
-          total: number
-          user_id: string
+          score: number | null
+          submitted_at: string | null
+          total: number | null
+          user_id: string | null
         }
         Insert: {
           id?: string
-          score: number
-          submitted_at?: string
-          total: number
-          user_id: string
+          score?: number | null
+          submitted_at?: string | null
+          total?: number | null
+          user_id?: string | null
         }
         Update: {
           id?: string
-          score?: number
-          submitted_at?: string
-          total?: number
-          user_id?: string
+          score?: number | null
+          submitted_at?: string | null
+          total?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
       mission_scores: {
         Row: {
-          id: string
-          mission_id: number
-          score: number
-          submitted_at: string | null
+          misi1: number | null
+          misi2: number | null
+          misi3: number | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          id?: string
-          mission_id: number
-          score?: number
-          submitted_at?: string | null
+          misi1?: number | null
+          misi2?: number | null
+          misi3?: number | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          id?: string
-          mission_id?: number
-          score?: number
-          submitted_at?: string | null
+          misi1?: number | null
+          misi2?: number | null
+          misi3?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -88,82 +88,48 @@ export type Database = {
       }
       reflections: {
         Row: {
-          feel: number | null
-          id: string
-          submitted_at: string
-          text: string | null
+          feel_index: number | null
+          reflection_text: string | null
+          submitted_at: string | null
           user_id: string
         }
         Insert: {
-          feel?: number | null
-          id?: string
-          submitted_at?: string
-          text?: string | null
+          feel_index?: number | null
+          reflection_text?: string | null
+          submitted_at?: string | null
           user_id: string
         }
         Update: {
-          feel?: number | null
-          id?: string
-          submitted_at?: string
-          text?: string | null
+          feel_index?: number | null
+          reflection_text?: string | null
+          submitted_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "reflections_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       student_progress: {
         Row: {
-          id: string
-          lab_status: string
-          misi1: number
-          misi2: number
-          misi3: number
-          modules_completed: number
-          modules_total: number
-          progress: number
-          updated_at: string
+          lab_status: string | null
+          modules_completed: number | null
+          modules_total: number | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          id?: string
-          lab_status?: string
-          misi1?: number
-          misi2?: number
-          misi3?: number
-          modules_completed?: number
-          modules_total?: number
-          progress?: number
-          updated_at?: string
+          lab_status?: string | null
+          modules_completed?: number | null
+          modules_total?: number | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          id?: string
-          lab_status?: string
-          misi1?: number
-          misi2?: number
-          misi3?: number
-          modules_completed?: number
-          modules_total?: number
-          progress?: number
-          updated_at?: string
+          lab_status?: string | null
+          modules_completed?: number | null
+          modules_total?: number | null
+          updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "student_progress_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

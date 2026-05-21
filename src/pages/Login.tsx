@@ -25,7 +25,7 @@ export default function Login() {
     const name =
       (data.user?.user_metadata as { full_name?: string })?.full_name ||
       email.split("@")[0];
-    try { localStorage.setItem("sb_user", JSON.stringify({ name, email })); } catch { /* ignore */ }
+    try { localStorage.setItem("sb_user", JSON.stringify({ name, email, id: data.user?.id })); } catch { /* ignore */ }
     navigate("/");
   };
 
@@ -44,7 +44,7 @@ export default function Login() {
             ← Kembali ke beranda
           </Link>
           <div className="mb-8">
-            
+
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Selamat datang kembali di <BrandLogo size="lg" /></h1>
             <p className="text-sm text-gray-500 mt-2">Masuk untuk melanjutkan perjalanan belajarmu.</p>
           </div>

@@ -7,8 +7,59 @@ import Reveal from "@/components/Reveal";
 import EbookViewer from "@/components/EbookViewer";
 import BrandLogo from "@/components/BrandLogo";
 import petaKonsep from "@/assets/peta-konsep-stoikiometri.png";
+import { supabase } from "@/integrations/supabase/client";
 
 const EBOOK_URL = "/ebook/Panduan_Stoikiometri_Interaktif.pdf";
+
+/** Simpan progress modul siswa ke Supabase */
+async function saveProgress(userId: string, modulesCompleted: number) {
+  await supabase.from("student_progress").upsert(
+    {
+      user_id: userId,
+      modules_completed: modulesCompleted,
+      modules_total: 6,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+}
+
+/** Simpan status lab virtual siswa ke Supabase */
+async function saveLabStatus(userId: string, labStatus: "Belum Dicoba" | "Belum" | "Tercapai") {
+  await supabase.from("student_progress").upsert(
+    {
+      user_id: userId,
+      lab_status: labStatus,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+}
+
+/** Simpan skor misi siswa ke Supabase */
+async function saveMissionScore(userId: string, misiKey: "misi1" | "misi2" | "misi3", score: number) {
+  await supabase.from("mission_scores").upsert(
+    {
+      user_id: userId,
+      [misiKey]: score,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+}
+
+/** Simpan refleksi siswa ke Supabase */
+async function saveReflection(userId: string, feelIndex: number, reflectionText: string) {
+  await supabase.from("reflections").upsert(
+    {
+      user_id: userId,
+      feel_index: feelIndex,
+      reflection_text: reflectionText,
+      submitted_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+}
 
 type PageId = "home" | "belajar" | "lab" | "game" | "evaluasi" | "refleksi";
 
@@ -26,21 +77,34 @@ export default function Index() {
   const [showSplash, setShowSplash] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
   const [userName, setUserName] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
   const [page, setPage] = useState<PageId>("home");
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Restore session from localStorage (set by /login or /register pages).
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("sb_user");
-      if (raw) {
-        const u = JSON.parse(raw);
-        if (u?.name) {
-          setUserName(u.name);
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUserId(session.user.id);
+          const name = session.user.user_metadata?.full_name || session.user.email || "";
+          setUserName(name);
           setLoggedIn(true);
+          return;
         }
-      }
-    } catch { /* ignore */ }
+      } catch { /* ignore */ }
+
+      try {
+        const raw = localStorage.getItem("sb_user");
+        if (raw) {
+          const u = JSON.parse(raw);
+          if (u?.name) {
+            setUserName(u.name);
+            setLoggedIn(true);
+          }
+        }
+      } catch { /* ignore */ }
+    })();
   }, []);
 
   const requireAuth = (p: PageId) => {
@@ -49,6 +113,13 @@ export default function Index() {
       return;
     }
     setPage(p);
+    if (userId) {
+      const pageOrder: PageId[] = ["home", "belajar", "lab", "game", "evaluasi", "refleksi"];
+      const idx = pageOrder.indexOf(p);
+      if (idx > 0) {
+        saveProgress(userId, idx);
+      }
+    }
     setMobileOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -63,6 +134,7 @@ export default function Index() {
     try { localStorage.removeItem("sb_user"); } catch { /* ignore */ }
     setLoggedIn(false);
     setUserName("");
+    setUserId("");
     setPage("home");
   };
 
@@ -77,89 +149,88 @@ export default function Index() {
 
       <div key={loggedIn ? "in" : "out"} className="min-h-screen text-gray-800 animate-slide-up-fade">
 
-      {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200">
-        <div className="px-4 py-3 flex items-center justify-between gap-4">
-          <button onClick={() => showPage("home")} className="flex items-center gap-2 font-bold">
-            <span className="w-8 h-8 rounded-lg bg-amber-500 text-gray-900 flex items-center justify-center font-extrabold">S</span>
-            <BrandLogo size="md" />
-          </button>
-          <div className="flex items-center gap-2">
-            {!loggedIn && (
-              <Link to="/login" className="px-3 py-1.5 rounded-lg bg-amber-500 text-gray-900 font-semibold text-sm">Login</Link>
-            )}
-            <button onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu" className="p-2 rounded-lg hover:bg-gray-100">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                {mobileOpen ? <><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></> : <><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></>}
-              </svg>
+        {/* Mobile top bar */}
+        <header className="md:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200">
+          <div className="px-4 py-3 flex items-center justify-between gap-4">
+            <button onClick={() => showPage("home")} className="flex items-center gap-2 font-bold">
+              <span className="w-8 h-8 rounded-lg bg-amber-500 text-gray-900 flex items-center justify-center font-extrabold">S</span>
+              <BrandLogo size="md" />
             </button>
-          </div>
-        </div>
-        <div className="h-1 bg-gray-100">
-          <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${progress}%` }} />
-        </div>
-      </header>
-
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/30" onClick={() => setMobileOpen(false)}>
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white p-5 shadow-xl rounded-r-3xl" onClick={(e) => e.stopPropagation()}>
-            <SidebarInner page={page} progress={progress} onSelect={showPage} />
-          </aside>
-        </div>
-      )}
-
-      <aside className="hidden md:flex fixed inset-y-4 left-4 w-60 bg-white/45 backdrop-blur-xl border border-white/60 p-5 flex-col z-40 rounded-3xl shadow-[0_8px_32px_-12px_rgba(255,178,166,0.25)]">
-        <SidebarInner page={page} progress={progress} onSelect={showPage} />
-      </aside>
-
-      <div className="md:pl-[17rem] md:pr-4">
-        <header className="sticky top-4 z-30 bg-white/55 backdrop-blur-xl border border-white/60 rounded-2xl shadow-[0_6px_24px_-12px_rgba(0,0,0,0.08)] hidden md:block mt-4">
-          <div className="max-w-5xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-rose-300 flex items-center justify-center text-gray-900 font-bold text-sm shadow-sm">{loggedIn && userName ? userName.charAt(0).toUpperCase() : "?"}</span>
-              <span className="font-bold text-gray-800 text-sm sm:text-base">{loggedIn ? `Halo, ${userName}!` : "Selamat datang!"}</span>
-            </div>
-            {loggedIn ? (
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 bg-white/70 border border-rose-300 text-rose-500 hover:bg-rose-50 hover:border-rose-400 font-semibold text-sm px-4 py-2 rounded-xl transition-colors shadow-sm"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
+            <div className="flex items-center gap-2">
+              {!loggedIn && (
+                <Link to="/login" className="px-3 py-1.5 rounded-lg bg-amber-500 text-gray-900 font-semibold text-sm">Login</Link>
+              )}
+              <button onClick={() => setMobileOpen((v) => !v)} aria-label="Toggle menu" className="p-2 rounded-lg hover:bg-gray-100">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  {mobileOpen ? <><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></> : <><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></>}
                 </svg>
-                Logout
               </button>
-            ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-gray-900 font-semibold text-sm px-5 py-2 rounded-xl transition-colors shadow-sm"
-              >
-                Login
-              </Link>
-            )}
+            </div>
+          </div>
+          <div className="h-1 bg-gray-100">
+            <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
         </header>
-        <main className="max-w-5xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
-          <div className="md:bg-white/55 md:backdrop-blur-xl md:border md:border-white/60 md:rounded-3xl md:shadow-[0_10px_40px_-15px_rgba(0,0,0,0.08)] md:p-6 lg:p-10">
-            {page === "home" && <HomePage onStart={() => loggedIn ? showPage("belajar") : navigate("/login")} />}
-            {page === "belajar" && <BelajarPage onNext={() => showPage("lab")} />}
-            {page === "lab" && <VirtualLabPage onNext={() => showPage("game")} />}
-            {page === "game" && <GamePage onNext={() => showPage("evaluasi")} />}
-            {page === "evaluasi" && <EvaluasiPage onNext={() => showPage("refleksi")} />}
-            {page === "refleksi" && <RefleksiPage onRestart={() => showPage("home")} />}
+
+        {mobileOpen && (
+          <div className="md:hidden fixed inset-0 z-50 bg-black/30" onClick={() => setMobileOpen(false)}>
+            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white p-5 shadow-xl rounded-r-3xl" onClick={(e) => e.stopPropagation()}>
+              <SidebarInner page={page} progress={progress} onSelect={showPage} />
+            </aside>
           </div>
-        </main>
-        <footer className="mt-8">
-          <div className="max-w-5xl mx-auto px-6 py-6 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
-            © {new Date().getFullYear()} <BrandLogo size="sm" /> — Belajar Mandiri.
-          </div>
-        </footer>
-      </div>
+        )}
+
+        <aside className="hidden md:flex fixed inset-y-4 left-4 w-60 bg-white/45 backdrop-blur-xl border border-white/60 p-5 flex-col z-40 rounded-3xl shadow-[0_8px_32px_-12px_rgba(255,178,166,0.25)]">
+          <SidebarInner page={page} progress={progress} onSelect={showPage} />
+        </aside>
+
+        <div className="md:pl-[17rem] md:pr-4">
+          <header className="sticky top-4 z-30 bg-white/55 backdrop-blur-xl border border-white/60 rounded-2xl shadow-[0_6px_24px_-12px_rgba(0,0,0,0.08)] hidden md:block mt-4">
+            <div className="max-w-5xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-rose-300 flex items-center justify-center text-gray-900 font-bold text-sm shadow-sm">{loggedIn && userName ? userName.charAt(0).toUpperCase() : "?"}</span>
+                <span className="font-bold text-gray-800 text-sm sm:text-base">{loggedIn ? `Halo, ${userName}!` : "Selamat datang!"}</span>
+              </div>
+              {loggedIn ? (
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 bg-white/70 border border-rose-300 text-rose-500 hover:bg-rose-50 hover:border-rose-400 font-semibold text-sm px-4 py-2 rounded-xl transition-colors shadow-sm"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-gray-900 font-semibold text-sm px-5 py-2 rounded-xl transition-colors shadow-sm"
+                >
+                  Login
+                </Link>
+              )}
+            </div>
+          </header>
+          <main className="max-w-5xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+            <div className="md:bg-white/55 md:backdrop-blur-xl md:border md:border-white/60 md:rounded-3xl md:shadow-[0_10px_40px_-15px_rgba(0,0,0,0.08)] md:p-6 lg:p-10">
+              {page === "home" && <HomePage onStart={() => loggedIn ? showPage("belajar") : navigate("/login")} />}
+              {page === "belajar" && <BelajarPage onNext={() => showPage("lab")} />}
+              {page === "lab" && <VirtualLabPage onNext={() => showPage("game")} userId={userId} />}
+              {page === "game" && <GamePage onNext={() => showPage("evaluasi")} userId={userId} />}
+              {page === "evaluasi" && <EvaluasiPage onNext={() => showPage("refleksi")} userId={userId} />}
+              {page === "refleksi" && <RefleksiPage onRestart={() => showPage("home")} userId={userId} />}
+            </div>
+          </main>
+          <footer className="mt-8">
+            <div className="max-w-5xl mx-auto px-6 py-6 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+              © {new Date().getFullYear()} <BrandLogo size="sm" /> — Belajar Mandiri.
+            </div>
+          </footer>
+        </div>
 
       </div>
-
     </>
   );
 }
@@ -294,7 +365,6 @@ function HomePage({ onStart }: { onStart: () => void }) {
               </p>
             </div>
           </Reveal>
-
         </div>
       </div>
 
@@ -444,6 +514,8 @@ const STEP_EXERCISES: Record<string, Exercise[]> = {
   ],
 };
 
+// ✅ FIX BUG 4: Hapus setState-during-render dan useState kosong yang tidak berguna.
+// Gunakan useEffect untuk inisialisasi array `solved`.
 function StepExercise({ subId, onPass }: { subId: string; onPass: () => void }) {
   const list = STEP_EXERCISES[subId] ?? [];
   const [idx, setIdx] = useState(0);
@@ -451,21 +523,16 @@ function StepExercise({ subId, onPass }: { subId: string; onPass: () => void }) 
   const [val, setVal] = useState("");
   const [state, setState] = useState<null | boolean>(null);
   const [tries, setTries] = useState(0);
-  const [solved, setSolved] = useState<boolean[]>([]);
+  const [solved, setSolved] = useState<boolean[]>(() => new Array(list.length).fill(false));
 
-  // Reset on step change — use key prop pattern handled externally or effect
-  // We use a simple effect keyed on subId
-  const resetRef = useState(subId)[0];
-  if (resetRef !== subId) {
-    // This won't work in strict mode; use key instead
-  }
-  // Actually use useEffect
-  useState(() => {
-    // initial
-  });
-
-  // Simpler: just key the component from parent. But let's keep the effect approach from original:
-  // (The parent should use key={active} on StepExercise)
+  // Reset solved array when subId changes (handled by key prop from parent)
+  useEffect(() => {
+    setSolved(new Array(list.length).fill(false));
+    setIdx(0);
+    setVal("");
+    setState(null);
+    setTries(0);
+  }, [subId, list.length]);
 
   if (!ex) return null;
 
@@ -484,11 +551,6 @@ function StepExercise({ subId, onPass }: { subId: string; onPass: () => void }) 
 
   const goTo = (i: number) => { setIdx(i); setVal(""); setState(null); setTries(0); };
   const nextQ = () => { if (idx < list.length - 1) goTo(idx + 1); };
-
-  // Initialize solved array if needed
-  if (solved.length !== list.length) {
-    setSolved(new Array(list.length).fill(false));
-  }
 
   const inputCls = state === true ? "bg-green-500 text-white border-green-500" : state === false ? "bg-red-500 text-white border-red-500" : val ? "bg-amber-500 text-gray-900 border-amber-500" : "bg-white border-gray-300 text-gray-800";
 
@@ -751,9 +813,9 @@ function MateriMol() {
       <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-800 space-y-3">
         <div>
           <p>• Hitunglah massa dari 0,1 mol gas karbon dioksida!</p>
-          <p className="mt-1">Diketahui: 0,1 mol karbon dioksida<br/>Ditanya: massa gas karbon dioksida</p>
+          <p className="mt-1">Diketahui: 0,1 mol karbon dioksida<br />Ditanya: massa gas karbon dioksida</p>
           <p className="mt-1"><strong>Jawab:</strong></p>
-          <p>Massa CO<sub>2</sub> = mol × massa molar CO<sub>2</sub><br/>= 0,1 mol × 44 g·mol<sup>−1</sup> = 4,4 g</p>
+          <p>Massa CO<sub>2</sub> = mol × massa molar CO<sub>2</sub><br />= 0,1 mol × 44 g·mol<sup>−1</sup> = 4,4 g</p>
         </div>
         <div>
           <p>• Hitunglah jumlah mol dari 18 gram air!</p>
@@ -935,7 +997,7 @@ function MateriKemurnian() {
 }
 
 /* ========== GAME ========== */
-function GamePage({ onNext }: { onNext: () => void }) {
+function GamePage({ onNext, userId }: { onNext: () => void; userId: string }) {
   const [activeMission, setActiveMission] = useState<number | null>(null);
 
   const missions = [
@@ -1007,8 +1069,8 @@ function GamePage({ onNext }: { onNext: () => void }) {
 type BalanceLevel = {
   reactants: { label: ReactNode }[];
   products: { label: ReactNode }[];
-  target: number[]; // koefisien target [r1, r2, ..., p1, p2, ...]
-  atoms: { sym: string; reac: number[]; prod: number[] }[]; // jumlah tiap atom per spesies
+  target: number[];
+  atoms: { sym: string; reac: number[]; prod: number[] }[];
 };
 
 const BALANCE_LEVELS: BalanceLevel[] = [
@@ -1094,7 +1156,6 @@ function Mission1Balancer({ onBack, onNext }: { onBack: () => void; onNext: () =
     </div>
   );
 
-  // hitung balans per atom
   const atomRows = lvl.atoms.map((a) => {
     const left = a.reac.reduce((s, n, i) => s + n * coef[i], 0);
     const right = a.prod.reduce((s, n, i) => s + n * coef[lvl.reactants.length + i], 0);
@@ -1170,7 +1231,7 @@ function Mission1Balancer({ onBack, onNext }: { onBack: () => void; onNext: () =
   );
 }
 
-/* ---------- Generic single-question multiple-choice flow used by Misi 2 & 3 ---------- */
+/* ---------- Generic single-question multiple-choice flow ---------- */
 type MCQuestion = {
   scenario: ReactNode;
   question: ReactNode;
@@ -1235,8 +1296,8 @@ function MCMissionRunner({
             const cls = isCorrect
               ? "bg-emerald-50 border-emerald-400 text-emerald-800"
               : isWrong
-              ? "bg-rose-50 border-rose-400 text-rose-800"
-              : "bg-white border-gray-200 hover:border-amber-300 hover:bg-amber-50 text-gray-800";
+                ? "bg-rose-50 border-rose-400 text-rose-800"
+                : "bg-white border-gray-200 hover:border-amber-300 hover:bg-amber-50 text-gray-800";
             return (
               <button key={i} onClick={() => submit(i)} disabled={status === "ok"} className={`${base} ${cls}`}>
                 <span className="inline-block w-6 h-6 rounded-md bg-gray-100 text-gray-700 font-bold text-center mr-2">{String.fromCharCode(65 + i)}</span>
@@ -1282,7 +1343,7 @@ function MCMissionRunner({
 }
 
 /* ---------- Misi 2: Misteri Titrasi ---------- */
-function Mission2Titrasi({ onBack }: { onBack: () => void; onNext: () => void }) {
+function Mission2Titrasi({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const questions: MCQuestion[] = [
     {
       scenario: (
@@ -1325,7 +1386,7 @@ function Mission2Titrasi({ onBack }: { onBack: () => void; onNext: () => void })
 }
 
 /* ---------- Misi 3: Pereaksi Pembatas ---------- */
-function Mission3Limiting({ onBack }: { onBack: () => void; onNext: () => void }) {
+function Mission3Limiting({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
   const questions: MCQuestion[] = [
     {
       scenario: (
@@ -1393,7 +1454,9 @@ const BANK: Q[] = [
   { id: 20, sumber: "TKA Saintek UTBK 2022", q: <>4Au + 8KCN + O<sub>2</sub> + 2H<sub>2</sub>O → 4KAu(CN)<sub>2</sub> + 4KOH. 100 g bijih emas → 0,2 mol KAu(CN)<sub>2</sub>. % massa Au? (M<sub>r</sub> Au=197)</>, opts: ["19,6%", "28,5%", "39,4%", "59,1%", "75,4%"], ans: 2 },
 ];
 
-function EvaluasiPage({ onNext }: { onNext: () => void }) {
+// ✅ FIX BUG 1: Hapus blok JSX orphan yang ada sebelum useState.
+// Logika simpan ke Supabase dipindahkan ke dalam onClick tombol yang benar di JSX return.
+function EvaluasiPage({ onNext, userId }: { onNext: () => void; userId: string }) {
   const [answers, setAnswers] = useState<(number | null)[]>(() => Array(BANK.length).fill(null));
   const [done, setDone] = useState(false);
   const score = useMemo(() => answers.reduce<number>((s, a, i) => s + (a === BANK[i].ans ? 1 : 0), 0), [answers]);
@@ -1426,7 +1489,23 @@ function EvaluasiPage({ onNext }: { onNext: () => void }) {
               </div>
             </div>
           ))}
-          <button onClick={() => { setDone(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} disabled={answers.some((a) => a === null)} className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900 font-semibold py-3 rounded-xl">
+          {/* ✅ FIX BUG 1 (lanjutan): Logika simpan Supabase ditambahkan di sini */}
+          <button
+            onClick={() => {
+              setDone(true);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              if (userId) {
+                supabase.from("evaluation_scores").insert({
+                  user_id: userId,
+                  score: score,
+                  total: BANK.length,
+                  submitted_at: new Date().toISOString(),
+                });
+              }
+            }}
+            disabled={answers.some((a) => a === null)}
+            className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900 font-semibold py-3 rounded-xl"
+          >
             Selesai & Lihat Skor
           </button>
         </div>
@@ -1464,7 +1543,9 @@ function EvaluasiPage({ onNext }: { onNext: () => void }) {
 }
 
 /* ========== REFLEKSI ========== */
-function RefleksiPage({ onRestart }: { onRestart: () => void }) {
+// ✅ FIX BUG 2: Hapus blok JSX orphan sebelum useState. Logika saveReflection
+// dipindahkan ke onClick tombol yang benar di dalam JSX return.
+function RefleksiPage({ onRestart, userId }: { onRestart: () => void; userId: string }) {
   const emojis = ["😕", "🙂", "😀", "🤩"];
   const [feel, setFeel] = useState<number | null>(null);
   const [text, setText] = useState("");
@@ -1500,7 +1581,19 @@ function RefleksiPage({ onRestart }: { onRestart: () => void }) {
             placeholder="Ketikkan hasil refleksimu di sini berdasarkan pertanyaan panduan di atas..."
             className="mt-4 w-full min-h-[150px] px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-amber-500 outline-none text-gray-800 resize-y"
           />
-          <button onClick={() => setSubmitted(true)} disabled={feel === null || !text.trim()} className="mt-4 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900 font-semibold px-5 py-2.5 rounded-lg">Kirim Refleksi</button>
+          {/* ✅ FIX BUG 2 (lanjutan): Logika saveReflection ditambahkan di sini */}
+          <button
+            onClick={() => {
+              setSubmitted(true);
+              if (userId && feel !== null && text.trim()) {
+                saveReflection(userId, feel, text.trim());
+              }
+            }}
+            disabled={feel === null || !text.trim()}
+            className="mt-4 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-gray-900 font-semibold px-5 py-2.5 rounded-lg"
+          >
+            Kirim Refleksi
+          </button>
           {submitted && <div className="mt-3 text-sm text-green-600 font-semibold">✓ Terima kasih, refleksimu telah tersimpan!</div>}
         </div>
 
@@ -1527,12 +1620,12 @@ function RefleksiPage({ onRestart }: { onRestart: () => void }) {
 }
 
 /* ========== VIRTUAL LAB ========== */
-function VirtualLabPage({ onNext }: { onNext: () => void }) {
+// ✅ FIX BUG 3: Hapus blok `if (ok.every(Boolean))` yang mengambang di luar function body.
+// Logika saveLabStatus sudah ada di dalam fungsi validate() dan sudah benar.
+function VirtualLabPage({ onNext, userId }: { onNext: () => void; userId: string }) {
   const [v, setV] = useState(0);
-  // Buret total volume = 50 mL. Liquid height shrinks as v increases.
   const buretFillPct = Math.max(0, 100 - (v / 50) * 100);
 
-  // Lapisan tipis pink di dasar Erlenmeyer (perubahan warna ujung tetes)
   let bottomLayerColor = "rgba(252, 231, 243, 0.55)";
   let flaskGlow = "0 0 0 rgba(0,0,0,0)";
   let fullPink = false;
@@ -1541,27 +1634,23 @@ function VirtualLabPage({ onNext }: { onNext: () => void }) {
     flaskGlow = "0 0 24px rgba(244,114,182,0.45)";
     fullPink = true;
   } else if (v > 20) {
-    bottomLayerColor = "rgba(126, 18, 73, 0.85)"; // magenta gelap (over-titrated)
+    bottomLayerColor = "rgba(126, 18, 73, 0.85)";
     flaskGlow = "0 0 32px rgba(190,24,93,0.7)";
     fullPink = true;
   }
   const clearLiquid = fullPink ? bottomLayerColor : "rgba(186, 230, 253, 0.35)";
 
-  // Calculations (kunci jawaban)
   const M_NaOH = 0.1;
   const V_acid_mL = 25;
   const n_NaOH = M_NaOH * v;
   const n_H2SO4 = n_NaOH / 2;
   const M_H2SO4 = V_acid_mL > 0 ? n_H2SO4 / V_acid_mL : 0;
 
-  const fmt = (n: number, d = 4) => n.toFixed(d);
-
   let status: { text: string; cls: string };
   if (v < 20) status = { text: "Belum mencapai titik ekivalen", cls: "text-gray-500" };
   else if (v >= 20 && v <= 20.5) status = { text: "Titik Ekivalen Tercapai!", cls: "text-emerald-600" };
   else status = { text: "Titrasi berlebih!", cls: "text-rose-600" };
 
-  // Quiz state
   const [a1, setA1] = useState("");
   const [a2, setA2] = useState("");
   const [a3, setA3] = useState("");
@@ -1576,6 +1665,10 @@ function VirtualLabPage({ onNext }: { onNext: () => void }) {
       tol(M_H2SO4, parseFloat(a3.replace(",", ".")), 0.001),
     ];
     setCheck({ ok, allOk: ok.every(Boolean) });
+
+    if (ok.every(Boolean) && userId) {
+      saveLabStatus(userId, "Tercapai");
+    }
   };
 
   const inputCls =
